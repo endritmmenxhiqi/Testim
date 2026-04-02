@@ -27,9 +27,14 @@ namespace Backend.Controllers
         }
 
         [HttpPost("join/{id}")]
-        public async Task<IActionResult> JoinExam(int id, [FromBody] JoinExamDto body)
+        [Authorize(AuthenticationSchemes = Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> JoinExam(int id)
         {
-            if (body == null || body.StudentId <= 0) return BadRequest("StudentId mungon.");
+            var userIdClaim = User.FindFirst("id")?.Value ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim)) return Unauthorized("Ju lutem logohuni.");
+
+            int studentId = int.Parse(userIdClaim);
+            Console.WriteLine($"[DEBUG] Student {studentId} po tenton të hyjë në Provimin {id}");
 
             var exam = await _examService.GetExamByIdAsync(id);
             if (exam == null) return NotFound();
@@ -41,10 +46,7 @@ namespace Backend.Controllers
             if (DateTime.UtcNow > endTime) 
                 return BadRequest(new { message = "Koha e provimit ka përfunduar (Expired)." });
 
-            if (exam.ProfId == body.StudentId) 
-                return BadRequest(new { message = "Ju jeni krijuesi i këtij provimi." });
-
-            var existingResult = await _examService.GetExamResultAsync(id, body.StudentId);
+            var existingResult = await _examService.GetExamResultAsync(id, studentId);
             if (existingResult != null)
             {
                 if (existingResult.Status == "FINISHED") 
@@ -55,7 +57,7 @@ namespace Backend.Controllers
                 return Ok(new { message = "Rikthim në provim" });
             }
 
-            await _examService.EnsureStudentResultRecordAsync(id, body.StudentId);
+            await _examService.EnsureStudentResultRecordAsync(id, studentId);
             return Ok(new { message = "Sukses" });
         }
 
@@ -146,11 +148,22 @@ namespace Backend.Controllers
         [Authorize(AuthenticationSchemes = Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> GetMyExams()
         {
-            var userIdClaim = User.FindFirst("id")?.Value;
+            var userIdClaim = User.FindFirst("id")?.Value ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdClaim)) return Unauthorized();
 
             var exams = await _examService.GetExamsByProfessorIdAsync(int.Parse(userIdClaim));
             return Ok(exams);
+        }
+
+        [HttpGet("my-results")]
+        [Authorize(AuthenticationSchemes = Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> GetMyResults()
+        {
+            var userIdClaim = User.FindFirst("id")?.Value;
+            if (string.IsNullOrEmpty(userIdClaim)) return Unauthorized();
+
+            var results = await _examService.GetResultsByStudentIdAsync(int.Parse(userIdClaim));
+            return Ok(results);
         }
 
         [HttpPost("create")]
@@ -160,7 +173,10 @@ namespace Backend.Controllers
             var userIdClaim = User.FindFirst("id")?.Value;
             if (string.IsNullOrEmpty(userIdClaim)) return Unauthorized("Ju lutem logohuni si profesor.");
 
-            model.ProfId = int.Parse(userIdClaim);
+            int profId = int.Parse(userIdClaim);
+            Console.WriteLine($"[DEBUG] Krijim provimi nga ProfId: {profId}. Titulli: {model.Title}, Subjekti: {model.Subject}");
+
+            model.ProfId = profId;
             model.CreatedAt = DateTime.UtcNow;
 
             const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";

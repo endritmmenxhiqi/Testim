@@ -4,6 +4,8 @@ import {
   ClipboardList, LogOut, ChevronRight, FileCheck, Bell, User, Search, Calendar, X
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import api from '../../api';
+import toast from 'react-hot-toast';
 
 const ExamResults = () => {
   const navigate = useNavigate();
@@ -23,44 +25,32 @@ const ExamResults = () => {
 
   const fetchExams = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:5001/api/Exam/my-exams', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        let data = await res.json();
-        // RENDITJA: Më të rejat të parat (bazuar në ID ose Date)
-        data.sort((a, b) => (b.id || b.Id) - (a.id || a.Id));
-        setExams(data);
-      }
+      const res = await api.get('/Exam/my-exams');
+      let data = res.data;
+      // RENDITJA: Më të rejat të parat (bazuar në ID ose Date)
+      data.sort((a, b) => (b.id || b.Id) - (a.id || a.Id));
+      setExams(data);
     } catch (err) { console.error(err); }
   };
 
   const handleExamClick = async (exam) => {
     setSelectedExam(exam);
+    setStudentPage(1);
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:5001/api/Exam/${exam.id || exam.Id}/participants`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) setStudents(await res.json());
+      const res = await api.get(`/Exam/${exam.id || exam.Id}/participants`);
+      setStudents(res.data);
     } catch (err) { setStudents([]); }
   };
 
   const handleUpdateGrade = async (studentId, grade) => {
-    const token = localStorage.getItem('token');
     try {
-      const response = await fetch(`http://localhost:5001/api/Exam/update-grade`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({
-          ExamId: selectedExam.id || selectedExam.Id,
-          StudentId: studentId,
-          Grade: parseInt(grade)
-        })
+      await api.post(`/Exam/update-grade`, {
+        examId: selectedExam.id || selectedExam.Id,
+        studentId: studentId,
+        grade: parseInt(grade)
       });
-      if (response.ok) alert("Pikët u ruajtën me sukses!");
-    } catch (err) { alert("Gabim gjatë ruajtjes."); }
+      toast.success("Pikët u ruajtën me sukses!");
+    } catch (err) { toast.error("Gabim gjatë ruajtjes."); }
   };
 
   // LOGJIKA E FILTRIMIT
@@ -76,6 +66,14 @@ const ExamResults = () => {
   const indexOfFirstExam = indexOfLastExam - examsPerPage;
   const currentExams = filteredExams.slice(indexOfFirstExam, indexOfLastExam);
   const totalPages = Math.ceil(filteredExams.length / examsPerPage);
+
+  // LOGJIKA E PAGINATION PËR STUDENTËT
+  const [studentPage, setStudentPage] = useState(1);
+  const studentsPerPage = 8;
+  const indexOfLastStudent = studentPage * studentsPerPage;
+  const indexOfFirstStudent = indexOfLastStudent - studentsPerPage;
+  const currentStudents = students.slice(indexOfFirstStudent, indexOfLastStudent);
+  const totalStudentPages = Math.ceil(students.length / studentsPerPage);
 
   return (
     <div style={{ display: 'flex', width: '100vw', height: '100vh', position: 'fixed', top: 0, left: 0, backgroundColor: '#F8FAFC' }}>
@@ -194,19 +192,50 @@ const ExamResults = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {students.map(s => (
-                    <tr key={s.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                      <td style={{ padding: '15px 24px', fontWeight: '500' }}>{s.name || 'Emri Mungon'}</td>
+                  {currentStudents.map(s => (
+                    <tr key={s.studentId} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                      <td style={{ padding: '15px 24px', fontWeight: '500' }}>{s.studentName || 'Emri Mungon'}</td>
                       <td style={{ padding: '15px 24px' }}>
-                        <input type="number" id={`g-${s.id}`} defaultValue={s.grade} style={{ width: '80px', padding: '8px', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none' }} />
+                        <input type="number" id={`g-${s.studentId}`} defaultValue={s.score} style={{ width: '80px', padding: '8px', borderRadius: '8px', border: '1px solid #E2E8F0', outline: 'none' }} />
                       </td>
                       <td style={{ padding: '15px 24px' }}>
-                        <button onClick={() => handleUpdateGrade(s.id, document.getElementById(`g-${s.id}`).value)} style={{ backgroundColor: '#0F172A', color: 'white', padding: '8px 20px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: '500' }}>Ruaj</button>
+                        <button onClick={() => handleUpdateGrade(s.studentId, document.getElementById(`g-${s.studentId}`).value)} style={{ backgroundColor: '#0F172A', color: 'white', padding: '8px 20px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: '500' }}>Ruaj</button>
                       </td>
                     </tr>
                   ))}
+                  {currentStudents.length === 0 && (
+                      <tr><td colSpan="3" style={{ padding: '40px', textAlign: 'center', color: '#64748B' }}>Asnjë pjesëmarrës nuk u gjet.</td></tr>
+                  )}
                 </tbody>
               </table>
+              
+              {/* PAGINATION STUDENTE */}
+              {totalStudentPages > 1 && (
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', padding: '20px', borderTop: '1px solid #E2E8F0' }}>
+                      <button 
+                          disabled={studentPage === 1}
+                          onClick={() => setStudentPage(prev => prev - 1)}
+                          style={paginationButtonStyle}
+                      >Para</button>
+                      {[...Array(totalStudentPages)].map((_, i) => (
+                          <button 
+                              key={i}
+                              onClick={() => setStudentPage(i + 1)}
+                              style={{
+                                  ...paginationButtonStyle,
+                                  backgroundColor: studentPage === i + 1 ? '#2563EB' : 'white',
+                                  color: studentPage === i + 1 ? 'white' : '#64748B',
+                                  fontWeight: studentPage === i + 1 ? '800' : '500'
+                              }}
+                          >{i + 1}</button>
+                      ))}
+                      <button 
+                          disabled={studentPage === totalStudentPages}
+                          onClick={() => setStudentPage(prev => prev + 1)}
+                          style={paginationButtonStyle}
+                      >Pas</button>
+                  </div>
+              )}
             </div>
           )}
         </div>

@@ -4,12 +4,15 @@ import {
   Monitor, ClipboardList, LogOut, Search, Trash2, AlertOctagon
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 const EventLogs = () => {
   const navigate = useNavigate();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
 
   const fetchLogs = async () => {
     try {
@@ -58,10 +61,10 @@ const EventLogs = () => {
       });
 
       if (response.ok) {
-        alert("Studenti u përjashtua!");
+        toast.success("Studenti u përjashtua!");
         fetchLogs();
       } else {
-        alert("Dështoi përjashtimi. Kontrolloni Backend-in.");
+        toast.error("Dështoi përjashtimi. Kontrolloni Backend-in.");
       }
     } catch (err) {
       console.error("Gabim:", err);
@@ -74,6 +77,11 @@ const EventLogs = () => {
       log.examTitle?.toLowerCase().includes(searchTerm.toLowerCase())
     )
   );
+
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentLogs = filteredLogs.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
 
   return (
     <div style={{ display: 'flex', width: '100vw', height: '100vh', position: 'fixed', top: 0, left: 0, backgroundColor: '#F8FAFC', fontFamily: 'Inter, sans-serif' }}>
@@ -115,7 +123,7 @@ const EventLogs = () => {
               type="text" 
               placeholder="Kërko student ose provim..." 
               style={{ padding: '12px 15px 12px 40px', borderRadius: '10px', border: '1px solid #E2E8F0', width: '300px', outline: 'none' }}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {setSearchTerm(e.target.value); setCurrentPage(1);}}
             />
           </div>
         </header>
@@ -135,8 +143,8 @@ const EventLogs = () => {
             <tbody>
               {loading ? (
                 <tr><td colSpan="6" style={{ padding: '40px', textAlign: 'center', color: '#64748B' }}>Duke ngarkuar të dhënat...</td></tr>
-              ) : filteredLogs.length > 0 ? (
-                filteredLogs.map(log => (
+              ) : currentLogs.length > 0 ? (
+                currentLogs.map(log => (
                   <tr key={log.id} style={{ borderBottom: '1px solid #F8FAFC', transition: 'background 0.2s' }}>
                     <td style={tdStyle}>
                       <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -182,10 +190,43 @@ const EventLogs = () => {
               )}
             </tbody>
           </table>
+          
+          {/* PAGINATION UI */}
+          {totalPages > 1 && (
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', padding: '20px', borderTop: '1px solid #E2E8F0', backgroundColor: 'white' }}>
+              <button 
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => prev - 1)}
+                style={paginationButtonStyle}
+              >Para</button>
+              {[...Array(totalPages)].map((_, i) => (
+                <button 
+                  key={i}
+                  onClick={() => setCurrentPage(i + 1)}
+                  style={{
+                    ...paginationButtonStyle,
+                    backgroundColor: currentPage === i + 1 ? '#2563EB' : 'white',
+                    color: currentPage === i + 1 ? 'white' : '#64748B',
+                    fontWeight: currentPage === i + 1 ? '800' : '500'
+                  }}
+                >{i + 1}</button>
+              ))}
+              <button 
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(prev => prev + 1)}
+                style={paginationButtonStyle}
+              >Pas</button>
+            </div>
+          )}
         </div>
       </main>
     </div>
   );
+};
+
+const paginationButtonStyle = {
+  padding: '8px 16px', borderRadius: '8px', border: '1px solid #E2E8F0', 
+  backgroundColor: 'white', cursor: 'pointer', fontSize: '14px', color: '#64748B', transition: 'all 0.2s'
 };
 
 const thStyle = { padding: '16px 20px', color: '#64748B', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' };

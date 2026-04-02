@@ -42,6 +42,9 @@ namespace Backend.Services
 
         // E RE: Metoda për Sdisualifikim (Përjashtim nga profesori)
         Task<bool> DisqualifyStudentAsync(int examId, int studentId);
+
+        // E RE: Metoda për Studentët (Dashboard)
+        Task<List<dynamic>> GetResultsByStudentIdAsync(int studentId);
     }
 
     // --- 2. IMPLEMENTATIONS ---
@@ -108,7 +111,8 @@ namespace Backend.Services
         {
             var query = from er in _context.ExamResults
                         join u in _context.Users on er.StudentId equals u.Id
-                        where er.ExamId == examId
+                        join ex in _context.Exams on er.ExamId equals ex.Id
+                        where er.ExamId == examId && er.StudentId != ex.ProfId
                         select new {
                             StudentId = er.StudentId,
                             StudentName = u.Username,
@@ -205,6 +209,26 @@ namespace Backend.Services
                 return true;
             }
             return false;
+        }
+
+        public async Task<List<dynamic>> GetResultsByStudentIdAsync(int studentId)
+        {
+            var query = from er in _context.ExamResults
+                        join e in _context.Exams on er.ExamId equals e.Id
+                        where er.StudentId == studentId
+                        select new {
+                            ExamId = er.ExamId,
+                            ExamTitle = e.Title,
+                            Subject = e.Subject,
+                            Score = er.Score,
+                            Status = er.Status,
+                            ViolationLog = er.ViolationLog,
+                            Date = er.EndActual ?? er.StartActual,
+                            Duration = e.Duration
+                        };
+
+            var data = await query.OrderByDescending(r => r.Date).ToListAsync();
+            return data.Cast<dynamic>().ToList();
         }
     }
 }

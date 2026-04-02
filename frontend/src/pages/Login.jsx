@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { GraduationCap } from 'lucide-react';
 import api from '../api';
+import toast from 'react-hot-toast';
 
 const Login = () => {
   const [username, setUsername] = useState(''); 
@@ -24,6 +25,7 @@ const Login = () => {
       localStorage.setItem('userId', res.data.id);
       localStorage.setItem('username', res.data.username);
 
+      toast.success('Mirësevini!');
       if (res.data.role === 'STUDENT') navigate('/student');
       else if (res.data.role === 'ADMIN') navigate('/admin');
       else navigate('/professor');

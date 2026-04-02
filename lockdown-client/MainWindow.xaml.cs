@@ -66,7 +66,7 @@ namespace LockdownBrowser
                 string[] args = Environment.GetCommandLineArgs();
                 
                 // Default values
-                int durationMinutes = 60;
+                int durationSeconds = 3600;
                 string studentName = "Student";
                 string targetUrl = "https://www.google.com";
 
@@ -88,7 +88,7 @@ namespace LockdownBrowser
                                 string val = System.Net.WebUtility.UrlDecode(kv[1]);
 
                                 if (key == "url") targetUrl = val;
-                                else if (key == "duration") int.TryParse(val, out durationMinutes);
+                                else if (key == "duration") int.TryParse(val, out durationSeconds);
                                 else if (key == "student") studentName = val;
                                 else if (key == "examid") int.TryParse(val, out _examId);
                                 else if (key == "studentid") int.TryParse(val, out _studentId);
@@ -104,7 +104,7 @@ namespace LockdownBrowser
                 ExamBrowser.Source = new Uri(targetUrl);
 
                 // Start Timer
-                _timeRemaining = TimeSpan.FromMinutes(durationMinutes);
+                _timeRemaining = TimeSpan.FromSeconds(durationSeconds);
                 _examTimer = new DispatcherTimer();
                 _examTimer.Interval = TimeSpan.FromSeconds(1);
                 _examTimer.Tick += ExamTimer_Tick;

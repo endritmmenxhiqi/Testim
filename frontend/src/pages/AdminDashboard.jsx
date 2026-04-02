@@ -2,19 +2,19 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Shield, LogOut, Check, UserX, Search, Bell, User, AlertTriangle, Filter, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
+import toast from 'react-hot-toast';
 
 const AdminDashboard = () => {
     const [users, setUsers] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [roleFilter, setRoleFilter] = useState('ALL');
     const [statusFilter, setStatusFilter] = useState('ALL');
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 8;
     const [showModal, setShowModal] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
     const [showProfileDropdown, setShowProfileDropdown] = useState(false);
     const [currentUser, setCurrentUser] = useState(null);
-    
-    // State për Toast Notification (Zëvendëson alert-in)
-    const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
     const navigate = useNavigate();
     const dropdownRef = useRef(null);
@@ -38,14 +38,8 @@ const AdminDashboard = () => {
             const res = await api.get('/admin/users');
             setUsers(res.data);
         } catch (err) { 
-            showToast("Gabim gjatë marrjes së të dhënave", "error");
+            toast.error("Gabim gjatë marrjes së të dhënave");
         }
-    };
-
-    // Funksioni ndihmës për Toast
-    const showToast = (message, type = 'success') => {
-        setToast({ show: true, message, type });
-        setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
     };
 
     const handleRoleChange = async (userId, newRole) => {
@@ -60,10 +54,10 @@ const AdminDashboard = () => {
                 user.id === userId ? { ...user, role: newRole } : user
             ));
             
-            showToast(`Roli u ndryshua me sukses në ${newRole}`);
+            toast.success(`Roli u ndryshua me sukses në ${newRole}`);
         } catch (err) {
             console.error(err);
-            showToast("Gabim gjatë përditësimit të rolit", "error");
+            toast.error("Gabim gjatë përditësimit të rolit");
         }
     };
 
@@ -76,6 +70,13 @@ const AdminDashboard = () => {
         return matchesSearch && matchesRole && matchesStatus;
     });
 
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentItems = filteredUsers.slice(indexOfFirstItem, indexOfLastItem);
+    const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+
+    const onPageChange = (page) => setCurrentPage(page);
+
     const triggerBanModal = (user) => {
         setSelectedUser(user);
         setShowModal(true);
@@ -85,11 +86,11 @@ const AdminDashboard = () => {
         if (selectedUser) {
             try {
                 await api.post(`/admin/ban/${selectedUser.id}`);
-                showToast(`Aksesi u hoq për ${selectedUser.username}`);
+                toast.success(`Aksesi u hoq për ${selectedUser.username}`);
                 fetchUsers();
                 setShowModal(false);
             } catch (err) {
-                showToast("Gabim gjatë bllokimit", "error");
+                toast.error("Gabim gjatë bllokimit");
             }
         }
     };
@@ -101,14 +102,6 @@ const AdminDashboard = () => {
 
     return (
         <div style={styles.container}>
-            {/* TOAST NOTIFICATION */}
-            {toast.show && (
-                <div style={{...styles.toast, backgroundColor: toast.type === 'success' ? '#10B981' : '#EF4444'}}>
-                    {toast.type === 'success' ? <Check size={18} /> : <AlertTriangle size={18} />}
-                    <span>{toast.message}</span>
-                </div>
-            )}
-
             {/* MODAL I BLLOKIMIT */}
             {showModal && (
                 <div style={styles.modalOverlay}>
@@ -170,7 +163,7 @@ const AdminDashboard = () => {
                                 placeholder="Kërko me emër ose email..." 
                                 style={styles.searchInput}
                                 value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
+                                onChange={(e) => {setSearchTerm(e.target.value); setCurrentPage(1);}}
                             />
                         </div>
 
@@ -180,7 +173,7 @@ const AdminDashboard = () => {
                                 <select 
                                     style={styles.filterSelect}
                                     value={roleFilter}
-                                    onChange={(e) => setRoleFilter(e.target.value)}
+                                    onChange={(e) => {setRoleFilter(e.target.value); setCurrentPage(1);}}
                                 >
                                     <option value="ALL">Të gjitha Rolet</option>
                                     <option value="STUDENT">Student</option>
@@ -193,7 +186,7 @@ const AdminDashboard = () => {
                                 <select 
                                     style={styles.filterSelect}
                                     value={statusFilter}
-                                    onChange={(e) => setStatusFilter(e.target.value)}
+                                    onChange={(e) => {setStatusFilter(e.target.value); setCurrentPage(1);}}
                                 >
                                     <option value="ALL">Çdo Status</option>
                                     <option value="ACTIVE">Aktiv</option>
@@ -214,8 +207,8 @@ const AdminDashboard = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredUsers.length > 0 ? filteredUsers.map(user => (
-                                <tr key={user.id} style={styles.tr}>
+                            {currentItems.length > 0 ? currentItems.map(user => (
+                                <tr key={user.id} style={{ ...styles.tr, borderBottom: '1px solid #F3F4F6' }}>
                                     <td style={styles.td}>
                                         <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
                                             <div style={styles.avatarSmall}>{user.username?.charAt(0).toUpperCase()}</div>
@@ -252,6 +245,34 @@ const AdminDashboard = () => {
                             )}
                         </tbody>
                     </table>
+
+                    {/* Pagination UI */}
+                    {totalPages > 1 && (
+                        <div style={{ padding: '20px 24px', borderTop: '1px solid #F1F5F9', display: 'flex', justifyContent: 'center', gap: '8px' }}>
+                            <button 
+                                disabled={currentPage === 1}
+                                onClick={() => onPageChange(currentPage - 1)}
+                                style={styles.paginationBtn}
+                            >Para</button>
+                            {[...Array(totalPages)].map((_, i) => (
+                                <button 
+                                    key={i}
+                                    onClick={() => onPageChange(i + 1)}
+                                    style={{
+                                        ...styles.paginationBtn,
+                                        backgroundColor: currentPage === i + 1 ? '#2563EB' : 'white',
+                                        color: currentPage === i + 1 ? 'white' : '#64748B',
+                                        fontWeight: currentPage === i + 1 ? '800' : '500'
+                                    }}
+                                >{i + 1}</button>
+                            ))}
+                            <button 
+                                disabled={currentPage === totalPages}
+                                onClick={() => onPageChange(currentPage + 1)}
+                                style={styles.paginationBtn}
+                            >Pas</button>
+                        </div>
+                    )}
                 </div>
             </main>
         </div>
@@ -301,7 +322,8 @@ const styles = {
     profileDropdown: { position: 'absolute', top: '55px', right: 0, width: '260px', backgroundColor: '#FFFFFF', borderRadius: '16px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', border: '1px solid #E5E7EB', overflow: 'hidden' },
     dropdownHeader: { padding: '20px', textAlign: 'center', borderBottom: '1px solid #F3F4F6' },
     profileBadge: { fontSize: '11px', color: '#2563EB', backgroundColor: '#EBF2FF', padding: '4px 10px', borderRadius: '9999px', fontWeight: '700' },
-    btnLogoutFull: { width: '100%', padding: '12px', border: 'none', backgroundColor: '#FFF1F2', color: '#E11D48', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }
+    btnLogoutFull: { width: '100%', padding: '12px', border: 'none', backgroundColor: '#FFF1F2', color: '#E11D48', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' },
+    paginationBtn: { padding: '8px 16px', borderRadius: '8px', border: '1px solid #E2E8F0', backgroundColor: 'white', cursor: 'pointer', fontSize: '14px', color: '#64748B', transition: 'all 0.2s' }
 };
 
 export default AdminDashboard;

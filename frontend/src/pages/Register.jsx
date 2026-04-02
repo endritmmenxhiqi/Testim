@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { GraduationCap } from 'lucide-react';
 import api from '../api';
+import toast from 'react-hot-toast';
 
 const Register = () => {
   const [username, setUsername] = useState('');
@@ -29,7 +30,7 @@ const Register = () => {
         password: password 
       });
       
-      alert('Llogaria u krijua me sukses!');
+      toast.success('Llogaria u krijua me sukses!');
       navigate('/login');
     } catch (err) {
       // Rregullimi i crash-it nëse backend kthen objekt gabimi

@@ -12,6 +12,8 @@ const Reports = () => {
   const [loading, setLoading] = useState(true);
   const [expandedExam, setExpandedExam] = useState(null); 
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -49,6 +51,11 @@ const Reports = () => {
   const examList = Object.values(groupedExams).filter(exam => 
     exam.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentExams = examList.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(examList.length / itemsPerPage);
 
   const toggleExam = (title) => {
     setExpandedExam(expandedExam === title ? null : title);
@@ -97,7 +104,7 @@ const Reports = () => {
               type="text" 
               placeholder="Kërko provimin..." 
               style={{ padding: '10px 15px 10px 40px', borderRadius: '10px', border: '1px solid #E2E8F0', width: '250px', outline: 'none' }}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {setSearchTerm(e.target.value); setCurrentPage(1);}}
             />
           </div>
         </div>
@@ -106,7 +113,7 @@ const Reports = () => {
           <div style={{ textAlign: 'center', padding: '50px', color: '#64748B' }}>Duke ngarkuar të dhënat nga serveri...</div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {examList.length > 0 ? examList.map((exam) => (
+            {currentExams.length > 0 ? currentExams.map((exam) => (
               <div key={exam.title} style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
                 
                 {/* Header i Dropdown-it */}
@@ -180,11 +187,44 @@ const Reports = () => {
                 Nuk u gjet asnjë raport.
               </div>
             )}
+
+            {/* PAGINATION UI */}
+            {totalPages > 1 && (
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '20px' }}>
+                <button 
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(prev => prev - 1)}
+                  style={paginationButtonStyle}
+                >Para</button>
+                {[...Array(totalPages)].map((_, i) => (
+                  <button 
+                    key={i}
+                    onClick={() => setCurrentPage(i + 1)}
+                    style={{
+                      ...paginationButtonStyle,
+                      backgroundColor: currentPage === i + 1 ? '#2563EB' : 'white',
+                      color: currentPage === i + 1 ? 'white' : '#64748B',
+                      fontWeight: currentPage === i + 1 ? '800' : '500'
+                    }}
+                  >{i + 1}</button>
+                ))}
+                <button 
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(prev => prev + 1)}
+                  style={paginationButtonStyle}
+                >Pas</button>
+              </div>
+            )}
           </div>
         )}
       </main>
     </div>
   );
+};
+
+const paginationButtonStyle = {
+  padding: '8px 16px', borderRadius: '8px', border: '1px solid #E2E8F0', 
+  backgroundColor: 'white', cursor: 'pointer', fontSize: '14px', color: '#64748B', transition: 'all 0.2s'
 };
 
 const thStyle = { padding: '12px 8px', color: '#64748B', fontSize: '12px', fontWeight: '600' };

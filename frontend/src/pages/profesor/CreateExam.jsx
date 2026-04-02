@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { 
   GraduationCap, LayoutDashboard, PlusCircle, Users, 
   Monitor, ClipboardList, LogOut, Bell, User, ArrowLeft, CheckCircle2, Copy
 } from 'lucide-react';
 import { useNavigate } from "react-router-dom";
+import api from "../../api";
+import toast from "react-hot-toast";
 
 const CreateExam = () => {
   const [title, setTitle] = useState("");
@@ -13,40 +15,46 @@ const CreateExam = () => {
   const [loading, setLoading] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [generatedCode, setGeneratedCode] = useState("");
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const dropdownRef = useRef(null);
   
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+          setShowProfileDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
       const examData = {
-        Title: title,
-        Subject: subject,
-        Url: url,
-        Duration: parseInt(duration)
+        title: title,
+        subject: subject,
+        url: url,
+        duration: parseInt(duration)
       };
 
-      const response = await fetch('http://localhost:5001/api/Exam/create', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(examData)
-      });
+      const response = await api.post('/exam/create', examData);
 
-      const data = await response.json();
-      if (response.ok) {
+      if (response.status === 200) {
+        const data = response.data;
         const code = data.examCode || data.code || data.Code;
         setGeneratedCode(code);
+        toast.success("Provimi u krijua me sukses!");
         setShowSuccessModal(true);
       } else {
-        alert("Gabim gjatë krijimit të provimit.");
+        toast.error("Gabim gjatë krijimit të provimit.");
       }
     } catch (error) {
-      alert("Nuk mund të lidhet me serverin.");
+      console.error(error);
+      toast.error(error.response?.data || "Nuk mund të lidhet me serverin.");
     } finally {
       setLoading(false);
     }
@@ -54,7 +62,7 @@ const CreateExam = () => {
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(generatedCode);
-    alert("Kodi u kopjua!");
+    toast.success("Kodi u kopjua!");
   };
 
   const inputStyle = {
@@ -107,8 +115,33 @@ const CreateExam = () => {
             <Bell size={20} color="#94A3B8" />
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <span style={{ fontWeight: '600', color: '#1E293B' }}>Profesor</span>
-              <div style={{ width: '32px', height: '32px', backgroundColor: '#F1F5F9', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <User size={18} color="#64748B" />
+              <div style={{ position: 'relative' }} ref={dropdownRef}>
+                  <div 
+                      onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+                      style={{ width: '32px', height: '32px', backgroundColor: '#F1F5F9', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                  >
+                      <User size={18} color="#64748B" />
+                  </div>
+                  
+                  {showProfileDropdown && (
+                      <div style={{ position: 'absolute', top: '45px', right: 0, width: '220px', backgroundColor: '#FFFFFF', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', border: '1px solid #E2E8F0', overflow: 'hidden', zIndex: 100 }}>
+                          <div style={{ padding: '16px', textAlign: 'center', borderBottom: '1px solid #F1F5F9' }}>
+                              <div style={{ width: '48px', height: '48px', margin: '0 auto 10px auto', backgroundColor: '#DBEAFE', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  <User size={24} color="#2563EB" />
+                              </div>
+                              <div style={{ fontWeight: '700', color: '#0F172A', fontSize: '15px' }}>{localStorage.getItem('username') || 'Profesor'}</div>
+                              <div style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>{localStorage.getItem('role') || 'PROFESSOR'}</div>
+                          </div>
+                          <div>
+                              <button 
+                                  onClick={() => { localStorage.clear(); navigate('/login'); }}
+                                  style={{ width: '100%', padding: '12px', border: 'none', backgroundColor: '#FFF1F2', color: '#E11D48', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '14px' }}
+                              >
+                                  <LogOut size={16} /> Dil nga llogaria
+                              </button>
+                          </div>
+                      </div>
+                  )}
               </div>
             </div>
           </div>

@@ -6,6 +6,7 @@ import {
   ChevronRight, RefreshCw, Users 
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import api from '../../api';
 
 // 1. MODALI I KONFIRMIMIT (I PËRGJITHSHËM)
 const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, confirmText = "Fillo Tani", color = "#2563EB" }) => {
@@ -35,14 +36,8 @@ const ManageStudentsModal = ({ isOpen, onClose, examId }) => {
   const fetchStudents = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:5001/api/Exam/${examId}/students-status`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setStudents(data);
-      }
+      const res = await api.get(`/Exam/${examId}/students-status`);
+      setStudents(res.data);
     } catch (err) { console.error("Gabim gjatë marrjes së studentëve:", err); }
     finally { setLoading(false); }
   };
@@ -54,13 +49,8 @@ const ManageStudentsModal = ({ isOpen, onClose, examId }) => {
   const handleResetStudent = async (studentId) => {
     if (!window.confirm("A jeni i sigurt? Kjo do t'i lejojë studentit të hyjë përsëri në provim nga fillimi.")) return;
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:5001/api/Exam/reset-student-attempt`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ examId, studentId })
-      });
-      if (res.ok) fetchStudents(); // Refresh listën pas resetit
+      await api.post(`/Exam/reset-student-attempt`, { examId, studentId });
+      fetchStudents(); // Refresh listën pas resetit
     } catch (err) { console.error(err); }
   };
 
@@ -106,47 +96,59 @@ const ProfessorDashboard = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [modalData, setModalData] = useState({ isOpen: false, examId: null });
   const [manageModal, setManageModal] = useState({ isOpen: false, examId: null });
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const dropdownRef = useRef(null);
   
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [currentPage, setCurrentPage] = useState(1);
-  const examsPerPage = 5;
+  const examsPerPage = 8;
 
   const isFetching = useRef(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
+    
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+          setShowProfileDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    
+    return () => {
+        clearInterval(timer);
+        document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, []);
 
   const fetchData = async () => {
     if (isFetching.current) return;
     isFetching.current = true;
     try {
-      const token = localStorage.getItem('token');
-      if (!token) { navigate('/login'); return; }
-
       const [examRes, logRes] = await Promise.all([
-        fetch('http://localhost:5001/api/Exam/my-exams', { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch('http://localhost:5001/api/Logs/my-exams-logs', { headers: { 'Authorization': `Bearer ${token}` } })
+        api.get('/Exam/my-exams'),
+        api.get('/Logs/my-exams-logs')
       ]);
 
-      if (examRes.ok && logRes.ok) {
-        const examData = await examRes.json();
-        const logData = await logRes.json();
-        examData.sort((a, b) => (b.id || b.Id) - (a.id || a.Id));
-        setExams(examData);
-        
-        const liveCount = examData.filter(e => getExamStatus(e).status === 'LIVE').length;
-        setStats({
-          activeExams: examData.length,
-          totalStudents: [...new Set(logData.map(l => l.studentId))].length,
-          liveMonitoring: liveCount,
-          violations: logData.filter(l => l.violationType === "GRAVE").length
-        });
-      }
-    } catch (err) { console.error(err); }
+      const examData = examRes.data;
+      const logData = logRes.data;
+      
+      examData.sort((a, b) => (b.id || b.Id) - (a.id || a.Id));
+      setExams(examData);
+      
+      const liveCount = examData.filter(e => getExamStatus(e).status === 'LIVE').length;
+      setStats({
+        activeExams: examData.length,
+        totalStudents: [...new Set(logData.map(l => l.studentId))].length,
+        liveMonitoring: liveCount,
+        violations: logData.filter(l => l.violationType === "GRAVE").length
+      });
+    } catch (err) { 
+        console.error(err); 
+        if (err.response?.status === 401) navigate('/login');
+    }
     finally { setLoading(false); isFetching.current = false; }
   };
 
@@ -226,8 +228,33 @@ const ProfessorDashboard = () => {
           <div style={{ color: '#64748B', fontSize: '14px' }}>Paneli i Profesorit</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
             <Bell size={20} color="#94A3B8" />
-            <div style={{ width: '32px', height: '32px', backgroundColor: '#2563EB', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <User size={16} color="white" />
+            <div style={{ position: 'relative' }} ref={dropdownRef}>
+                <div 
+                    onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+                    style={{ width: '32px', height: '32px', backgroundColor: '#2563EB', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                >
+                    <User size={16} color="white" />
+                </div>
+                
+                {showProfileDropdown && (
+                    <div style={{ position: 'absolute', top: '45px', right: 0, width: '220px', backgroundColor: '#FFFFFF', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', border: '1px solid #E2E8F0', overflow: 'hidden', zIndex: 100 }}>
+                        <div style={{ padding: '16px', textAlign: 'center', borderBottom: '1px solid #F1F5F9' }}>
+                            <div style={{ width: '48px', height: '48px', margin: '0 auto 10px auto', backgroundColor: '#DBEAFE', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <User size={24} color="#2563EB" />
+                            </div>
+                            <div style={{ fontWeight: '700', color: '#0F172A', fontSize: '15px' }}>{localStorage.getItem('username') || 'Profesor'}</div>
+                            <div style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>{localStorage.getItem('role') || 'PROFESSOR'}</div>
+                        </div>
+                        <div>
+                            <button 
+                                onClick={() => { localStorage.clear(); navigate('/login'); }}
+                                style={{ width: '100%', padding: '12px', border: 'none', backgroundColor: '#FFF1F2', color: '#E11D48', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '14px' }}
+                            >
+                                <LogOut size={16} /> Dil nga llogaria
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
           </div>
         </header>
@@ -322,13 +349,30 @@ const ProfessorDashboard = () => {
 
             {/* PAGINATION UI */}
             {totalPages > 1 && (
-              <div style={{ padding: '20px 24px', borderTop: '1px solid #F1F5F9', display: 'flex', justifyContent: 'center', gap: '10px' }}>
-                <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} style={{ border: '1px solid #E2E8F0', backgroundColor: 'white', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}><ChevronLeft size={16}/></button>
-                {[...Array(totalPages)].map((_, i) => (
-                  <button key={i} onClick={() => setCurrentPage(i + 1)} style={{ border: '1px solid #E2E8F0', backgroundColor: currentPage === i + 1 ? '#2563EB' : 'white', color: currentPage === i + 1 ? 'white' : '#64748B', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}>{i + 1}</button>
-                ))}
-                <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)} style={{ border: '1px solid #E2E8F0', backgroundColor: 'white', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}><ChevronRight size={16}/></button>
-              </div>
+                <div style={{ padding: '20px 24px', borderTop: '1px solid #F1F5F9', display: 'flex', justifyContent: 'center', gap: '8px' }}>
+                    <button 
+                        disabled={currentPage === 1}
+                        onClick={() => setCurrentPage(p => p - 1)}
+                        style={paginationButtonStyle}
+                    >Para</button>
+                    {[...Array(totalPages)].map((_, i) => (
+                        <button 
+                            key={i}
+                            onClick={() => setCurrentPage(i + 1)}
+                            style={{
+                                ...paginationButtonStyle,
+                                backgroundColor: currentPage === i + 1 ? '#2563EB' : 'white',
+                                color: currentPage === i + 1 ? 'white' : '#64748B',
+                                fontWeight: currentPage === i + 1 ? '800' : '500'
+                            }}
+                        >{i + 1}</button>
+                    ))}
+                    <button 
+                        disabled={currentPage === totalPages}
+                        onClick={() => setCurrentPage(p => p + 1)}
+                        style={paginationButtonStyle}
+                    >Pas</button>
+                </div>
             )}
           </div>
         </div>
@@ -370,5 +414,9 @@ const StatCard = ({ icon: Icon, label, value, color, onClick }) => (
     <div><div style={{ fontSize: '22px', fontWeight: '800' }}>{value}</div><div style={{ fontSize: '11px', color: '#94A3B8', textTransform: 'uppercase' }}>{label}</div></div>
   </div>
 );
+
+const paginationButtonStyle = {
+    padding: '8px 16px', borderRadius: '8px', border: '1px solid #E2E8F0', backgroundColor: 'white', cursor: 'pointer', fontSize: '14px', color: '#64748B', transition: 'all 0.2s'
+};
 
 export default ProfessorDashboard;

@@ -32,44 +32,64 @@ namespace Backend.Controllers
 
                 int professorId = int.Parse(userIdClaim);
 
-                // 2. Marrim rezultatet duke përfshirë tabelat lidhëse
-                var examResults = await _context.ExamResults
-                    .Include(er => er.Exam)
-                    .Include(er => er.Student)
-                    .Where(er => er.Exam != null && er.Exam.ProfId == professorId) 
-                    // Hoqa kushtin !string.IsNullOrEmpty(er.ViolationLog) që të shohim të gjithë studentët "Live" 
-                    // edhe nëse s'kanë bërë ende shkelje, por mund t'i përjashtojmë.
-                    .ToListAsync();
+                // 2. Marrim rezultatet duke përdorur JOIN-e të qarta dhe emërtuar saktë asetet
+                var logsQuery = from er in _context.ExamResults
+                                join exam in _context.Exams on er.ExamId equals exam.Id
+                                join studentUser in _context.Users on er.StudentId equals studentUser.Id
+                                join profUser in _context.Users on exam.ProfId equals profUser.Id
+                                where exam.ProfId == professorId && er.StudentId != exam.ProfId // Filtrojmë testet e profesorit
+                                select new {
+                                    ResultId = er.Id,
+                                    ExamId = er.ExamId,
+                                    ExamTitle = exam.Title,
+                                    Subject = exam.Subject,
+                                    ExamDuration = exam.Duration,
+                                    ExamStartTime = exam.StartTime,
+                                    StudentId = er.StudentId,
+                                    StudentUsername = studentUser.Username,
+                                    ProfessorId = exam.ProfId,
+                                    ProfessorUsername = profUser.Username,
+                                    Score = er.Score,
+                                    Status = er.Status,
+                                    ViolationLog = er.ViolationLog,
+                                    StartActual = er.StartActual,
+                                    EndActual = er.EndActual
+                                };
 
-                // 3. Formatojmë përgjigjen për Frontend-in e ri
+                var logsList = await logsQuery.ToListAsync();
+
+                // 3. Formatojmë përgjigjen për Frontend
                 var now = DateTime.UtcNow;
-                var response = examResults.Select(er => {
-                    var startTime = er.Exam?.StartTime;
-                    var duration = er.Exam?.Duration ?? 0;
+                var response = logsList.Select(log => {
+                    var startTime = log.ExamStartTime;
+                    var duration = log.ExamDuration;
                     
-                    // Llogaritja nëse provimi është aktualisht LIVE
+                    // Verifikimi nëse është LIVE
                     bool isLive = startTime.HasValue && 
                                   startTime.Value.Year > 1 &&
                                   now >= startTime.Value && 
                                   now <= startTime.Value.AddMinutes(duration) &&
-                                  er.Status != "FINISHED"; // Nëse e ka kryer, nuk është më live për të
+                                  log.Status != "FINISHED";
 
                     return new {
-                        id = er.Id,
-                        studentId = er.StudentId, // Kritike për butonin Përjashto
-                        studentName = er.Student?.Username ?? "Student i panjohur",
-                        examId = er.ExamId, // Kritike për butonin Përjashto
-                        examTitle = er.Exam?.Title ?? "Provim pa titull",
-                        subject = er.Exam?.Subject ?? "",
-                        score = er.Score, // Shtuar: Shfaq pikët/rezultatin
-                        status = er.Status,
-                        violationType = er.Status == "DISQUALIFIED" ? "GRAVE" : 
-                                       (!string.IsNullOrEmpty(er.ViolationLog) ? "PARALAJMËRIM" : "OK"),
-                        description = er.ViolationLog ?? "Nuk ka shkelje deri tani",
-                        timestamp = er.EndActual.HasValue ? er.EndActual.Value : er.StartActual,
+                        id = log.ResultId,
+                        studentId = log.StudentId,
+                        studentName = log.StudentUsername, // Vetëm emri pa ID
+                        examId = log.ExamId,
+                        examTitle = log.ExamTitle,
+                        subject = log.Subject,
+                        score = log.Score,
+                        status = log.Status,
+                        violationType = log.Status == "DISQUALIFIED" ? "GRAVE" : 
+                                       (!string.IsNullOrEmpty(log.ViolationLog) ? "PARALAJMËRIM" : "OK"),
+                        description = string.IsNullOrEmpty(log.ViolationLog) ? "Nuk ka shkelje deri tani" : log.ViolationLog,
+                        timestamp = log.EndActual ?? log.StartActual,
                         isLive = isLive
                     };
-                }).OrderByDescending(x => x.isLive).ThenByDescending(x => x.timestamp).ToList();
+                })
+                .OrderByDescending(x => x.isLive)
+                .ThenByDescending(x => x.timestamp)
+                .ToList();
 
                 return Ok(response);
             }

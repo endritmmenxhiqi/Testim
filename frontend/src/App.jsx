@@ -5,16 +5,19 @@ import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import StudentDashboard from './pages/StudentDashboard';
+import StudentResults from './pages/StudentResults';
 import AdminDashboard from './pages/AdminDashboard';
 import ProfessorDashboard from './pages/profesor/ProfessorDashboard'; 
 import CreateExam from './pages/profesor/CreateExam'; 
 import EventLogs from './pages/profesor/EventLog';
 import Reports from './pages/profesor/Reports';
 import ExamResults from './pages/profesor/ExamResults';
+import { Toaster } from 'react-hot-toast';
 
 function App() {
   return (
     <Router>
+      <Toaster position="top-right" />
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/login" element={<Login />} />
@@ -24,6 +27,7 @@ function App() {
         
         {/* Dashboards */}
         <Route path="/student" element={<StudentDashboard />} />
+        <Route path="/student/results" element={<StudentResults />} />
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/professor" element={<ProfessorDashboard />} />
         <Route path="/create-exam" element={<CreateExam />} />

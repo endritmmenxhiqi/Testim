@@ -105,3 +105,4 @@ C:\Users\Admin\Desktop\secure exam\backend\obj\Debug\net8.0\Backend.pdb
 C:\Users\Admin\Desktop\secure exam\backend\obj\Debug\net8.0\Backend.genruntimeconfig.cache
 C:\Users\Admin\Desktop\secure exam\backend\obj\Debug\net8.0\ref\Backend.dll
 C:\Users\Admin\Desktop\secure exam\backend\bin\Debug\net8.0\appsettings.json
+C:\Users\Admin\Desktop\secure exam\backend\obj\Debug\net8.0\Backend.sourcelink.json
