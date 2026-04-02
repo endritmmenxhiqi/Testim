@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "Jv2UI0rna/+yynQA1ua2Ycno6TXTdAcuSiV3s9Exgv+PLyrroPkme7MhWb0qerVBX6HKFr/g8YTmODapO6Ntrg==",
+  "dgSpecHash": "6GIQYh8MR1B121sRXndcP+zST7XA5ZA7HfHGy6KgfQK4i9l/NUGPUalI6bjA7CzXMs4BgONanJtJMI/PvcjBPQ==",
   "success": true,
-  "projectFilePath": "C:\\Users\\Admin\\Desktop\\secure exam\\backend\\Backend.csproj",
+  "projectFilePath": "C:\\Users\\Admin\\Desktop\\secure exam - Copy\\backend\\Backend.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\Admin\\.nuget\\packages\\bcrypt.net-next\\4.0.3\\bcrypt.net-next.4.0.3.nupkg.sha512",
     "C:\\Users\\Admin\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",

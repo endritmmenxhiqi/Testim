@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "vg8+jXfi/r6dlkmbGKIwbDZEFs6C9rDMoTxWRtod2FKz3pj3QzX+CYIXurmgVcW0UTh0Y0dvSphZITiCEENxvQ==",
+  "dgSpecHash": "sCbia6u0c9LeFheIfl4rstfmxzDyLoZ3xWWntVd5lVFlI0OCuusZzfEMYXiECrQCkdeST8S+E/VPB7eOwKaqDw==",
   "success": true,
-  "projectFilePath": "C:\\Users\\Admin\\Desktop\\secure exam\\lockdown-client\\LockdownBrowser.csproj",
+  "projectFilePath": "C:\\Users\\Admin\\Desktop\\secure exam - Copy\\lockdown-client\\LockdownBrowser.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\Admin\\.nuget\\packages\\materialdesigncolors\\2.1.4\\materialdesigncolors.2.1.4.nupkg.sha512",
     "C:\\Users\\Admin\\.nuget\\packages\\materialdesignthemes\\4.9.0\\materialdesignthemes.4.9.0.nupkg.sha512",
