@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("LockdownBrowser")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+da17ec5a389f8140de019c77d4caa5a4cfdea812")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+722b938fba527398db31783b3d94a2cbf980da0a")]
 [assembly: System.Reflection.AssemblyProductAttribute("LockdownBrowser")]
 [assembly: System.Reflection.AssemblyTitleAttribute("LockdownBrowser")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
