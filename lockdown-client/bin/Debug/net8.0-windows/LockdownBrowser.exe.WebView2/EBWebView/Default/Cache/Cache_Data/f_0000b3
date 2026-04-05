@@ -45,7 +45,7 @@ const EventLogs = () => {
         navigate("/login");
         return;
       }
-      const response = await fetch("http://localhost:5001/api/Logs/my-exams-logs", {
+      const response = await fetch("https://secure-exam-api-fjn8.onrender.com/api/api/Logs/my-exams-logs", {
         headers: { "Authorization": `Bearer ${token}` }
       });
       if (response.status === 401) {
@@ -72,7 +72,7 @@ const EventLogs = () => {
     if (!window.confirm(`A jeni i sigurt që dëshironi ta përjashtoni ${studentName} nga provimi? Ky veprim nuk zhbëhet.`)) return;
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:5001/api/Exam/disqualify-student", {
+      const response = await fetch("https://secure-exam-api-fjn8.onrender.com/api/api/Exam/disqualify-student", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${token}`,

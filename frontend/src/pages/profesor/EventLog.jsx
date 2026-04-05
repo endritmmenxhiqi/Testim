@@ -19,7 +19,7 @@ const EventLogs = () => {
       const token = localStorage.getItem('token');
       if (!token) { navigate('/login'); return; }
 
-      const response = await fetch('http://localhost:5001/api/Logs/my-exams-logs', {
+      const response = await fetch('https://secure-exam-api-fjn8.onrender.com/api/api/Logs/my-exams-logs', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -51,7 +51,7 @@ const EventLogs = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5001/api/Exam/disqualify-student', {
+      const response = await fetch('https://secure-exam-api-fjn8.onrender.com/api/api/Exam/disqualify-student', {
         method: 'POST',
         headers: { 
           'Authorization': `Bearer ${token}`,

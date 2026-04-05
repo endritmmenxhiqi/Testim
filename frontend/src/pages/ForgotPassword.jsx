@@ -15,7 +15,7 @@ const ForgotPassword = () => {
         setError('');
 
         try {
-            const response = await axios.post('http://localhost:5001/api/auth/forgot-password', { 
+            const response = await axios.post('https://secure-exam-api-fjn8.onrender.com/api/api/auth/forgot-password', { 
                 email: email 
             });
             setMessage(response.data.message || "Instruksionet u dërguan!");
