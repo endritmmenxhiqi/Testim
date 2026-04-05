@@ -1,7 +1,12 @@
 [build]
   base = "frontend"
-  command = "npm install && npx vite build"
+  # Kjo komandë instalon edhe Vite-n dhe bën build saktë
+  command = "npm install --include=dev && npm run build"
   publish = "dist"
+
+[build.environment]
+  NODE_ENV = "development"
+  NPM_FLAGS = "--include=dev"
 
 [[redirects]]
   from = "/*"
