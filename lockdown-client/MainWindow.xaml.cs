@@ -181,7 +181,7 @@ namespace LockdownBrowser
                     var content = new StringContent(json, Encoding.UTF8, "application/json");
                     
                     _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _token);
-                    await _httpClient.PostAsync("https://secure-exam-api-fjn8.onrender.com/api/api/Exam/log-violation", content);
+                    await _httpClient.PostAsync("https://secure-exam-api-fjn8.onrender.com/api/Exam/log-violation", content);
                     
                     _violationCooldowns[title] = DateTime.Now;
                     Debug.WriteLine($"Logged violation: {title}");
@@ -209,7 +209,7 @@ namespace LockdownBrowser
             {
                 if (!string.IsNullOrEmpty(_token))
                 {
-                    var req = new HttpRequestMessage(HttpMethod.Post, "https://secure-exam-api-fjn8.onrender.com/api/api/Exam/save-result");
+                    var req = new HttpRequestMessage(HttpMethod.Post, "https://secure-exam-api-fjn8.onrender.com/api/Exam/save-result");
                     req.Headers.Add("Authorization", $"Bearer {_token}");
                     var payload = new { ExamId = _examId, StudentId = _studentId, Score = 0 };
                     req.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");

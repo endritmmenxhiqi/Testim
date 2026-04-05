@@ -51,7 +51,7 @@ const EventLogs = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('https://secure-exam-api-fjn8.onrender.com/api/api/Exam/disqualify-student', {
+      const response = await fetch('https://secure-exam-api-fjn8.onrender.com/api/Exam/disqualify-student', {
         method: 'POST',
         headers: { 
           'Authorization': `Bearer ${token}`,

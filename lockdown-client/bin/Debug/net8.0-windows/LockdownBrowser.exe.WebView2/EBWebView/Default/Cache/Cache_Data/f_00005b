@@ -41,7 +41,7 @@ const ExamResults = () => {
   const fetchExams = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:5000/api/Exam/my-exams", {
+      const res = await fetch("http://localhost:5000/Exam/my-exams", {
         headers: { "Authorization": `Bearer ${token}` }
       });
       if (res.ok) setExams(await res.json());
@@ -53,7 +53,7 @@ const ExamResults = () => {
     setSelectedExam(exam);
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`http://localhost:5000/api/Exam/${exam.id || exam.Id}/students`, {
+      const res = await fetch(`http://localhost:5000/Exam/${exam.id || exam.Id}/students`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
       if (res.ok) setStudents(await res.json());
@@ -64,7 +64,7 @@ const ExamResults = () => {
   const handleUpdateGrade = async (studentId, grade) => {
     const token = localStorage.getItem("token");
     try {
-      const response = await fetch(`http://localhost:5000/api/Exam/update-grade`, {
+      const response = await fetch(`http://localhost:5000/Exam/update-grade`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({

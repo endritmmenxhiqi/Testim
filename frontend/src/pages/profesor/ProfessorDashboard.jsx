@@ -179,7 +179,7 @@ const ProfessorDashboard = () => {
     setModalData({ isOpen: false, examId: null });
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`https://secure-exam-api-fjn8.onrender.com/api/api/Exam/start/${examId}`, {
+      const response = await fetch(`https://secure-exam-api-fjn8.onrender.com/api/Exam/start/${examId}`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
