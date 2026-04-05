@@ -1,10 +1,10 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: 'https://secure-exam-api-fjn8.onrender.com/api', // Matches ASP.NET Core default port
+    // Nëse VITE_API_URL ekziston në Netlify, përdore atë. Përndryshe, përdor Render.
+    baseURL: import.meta.env.VITE_API_URL || 'https://secure-exam-api-fjn8.onrender.com/api',
 });
 
-// Add a request interceptor to inject the JWT token
 api.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('token');
