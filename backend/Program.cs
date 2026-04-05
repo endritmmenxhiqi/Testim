@@ -8,12 +8,12 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Shto shërbimet
+// 1. Shto shërbimet (Controllers, SignalR)
 builder.Services.AddControllers();
 builder.Services.AddSignalR();
 builder.Services.AddEndpointsApiExplorer();
 
-// Lidhja me Databazën
+// 2. Lidhja me Databazën (Sigurohu që DefaultConnection është në Render Env Vars)
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
     ?? "server=localhost;user=root;password=;database=bgt_secure_exam";
 
@@ -23,8 +23,22 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IExamService, ExamService>();
 
-// Authentication
-var key = Encoding.ASCII.GetBytes(builder.Configuration["Jwt:Key"] ?? "SUPER_SECRET_KEY_123456789_MUST_BE_LONG_ENOUGH");
+// 3. Konfigurimi i CORS (I rëndësishëm për Netlify dhe SignalR)
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowNetlify", policy =>
+    {
+        policy.WithOrigins("https://dazzling-gumption-3362bc.netlify.app") // URL e saktë e Netlify
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials(); // Duhet për SignalR/Hubs
+    });
+});
+
+// 4. Authentication (JWT)
+var jwtKey = builder.Configuration["Jwt:Key"] ?? "SUPER_SECRET_KEY_123456789_MUST_BE_LONG_ENOUGH";
+var key = Encoding.ASCII.GetBytes(jwtKey);
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -44,20 +58,9 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// CORS i thjeshtuar për Render
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowAll", policy =>
-    {
-        policy.AllowAnyOrigin() 
-              .AllowAnyMethod()
-              .AllowAnyHeader();
-    });
-});
-
 var app = builder.Build();
 
-// Krijimi i tabelave
+// 5. Krijimi i tabelave (Migrimet automatike)
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -66,11 +69,13 @@ using (var scope = app.Services.CreateScope())
         context.Database.EnsureCreated();
         Console.WriteLine("Database and tables ensured.");
     } catch (Exception ex) {
-        Console.WriteLine($"Error: {ex.Message}");
+        Console.WriteLine($"Database Error: {ex.Message}");
     }
 }
 
-app.UseCors("AllowAll");
+// 6. Middleware Pipeline (RENDITJA KA RËNDËSI!)
+app.UseCors("AllowNetlify"); // Duhet të jetë i pari
+
 app.UseAuthentication();
 app.UseAuthorization();
 
