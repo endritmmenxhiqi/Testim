@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: 'http://localhost:5001/api', // Matches ASP.NET Core default port
+    baseURL: 'https://secure-exam-api-fjn8.onrender.com/api', // Matches ASP.NET Core default port
 });
 
 // Add a request interceptor to inject the JWT token
